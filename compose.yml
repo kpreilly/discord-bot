@@ -1,0 +1,152 @@
+# Base Docker Compose configuration following 2025 Compose Specification
+# Use with environment-specific override files
+# Note: 'version' field is obsolete in Compose v2 (2025 standard)
+
+networks:
+  bot-network:
+    driver: bridge
+    internal: false
+  database-network:
+    driver: bridge
+    internal: true
+
+volumes:
+  bot-logs:
+    driver: local
+  database-data:
+    driver: local
+
+services:
+  discord-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: discord-bot:${BOT_VERSION:-latest}
+    container_name: discord-bot-${COMPOSE_ENV:-dev}
+    restart: unless-stopped
+    
+    # Network configuration
+    networks:
+      - bot-network
+      - database-network
+    
+    # Environment variables (non-sensitive)
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - COMMAND_PREFIX=${COMMAND_PREFIX:-!}
+      - DATABASE_ECHO=${DATABASE_ECHO:-false}
+    
+    # Secrets management (overridden in environment-specific files)
+    secrets:
+      - discord_token
+      - database_url
+    
+    # Volume mounts
+    volumes:
+      - bot-logs:/app/logs:rw
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Security settings
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Dependencies
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: postgres:16-alpine
+    container_name: postgres-${COMPOSE_ENV:-dev}
+    restart: unless-stopped
+    
+    # Network configuration
+    networks:
+      - database-network
+    
+    # Environment variables
+    environment:
+      - POSTGRES_DB=${DB_NAME:-discord_bot}
+      - POSTGRES_USER=${DB_USER:-bot_user}
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    
+    # Secrets
+    secrets:
+      - db_password
+    
+    # Volume configuration
+    volumes:
+      - database-data:/var/lib/postgresql/data:rw
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bot_user} -d ${DB_NAME:-discord_bot}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    # Security settings
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/run/postgresql:noexec,nosuid,size=10m
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Default secrets configuration (overridden in environment-specific files)
+secrets:
+  discord_token:
+    external: true
+    name: discord_token_${COMPOSE_ENV:-dev}
+  
+  database_url:
+    external: true
+    name: database_url_${COMPOSE_ENV:-dev}
+  
+  db_password:
+    external: true
+    name: db_password_${COMPOSE_ENV:-dev}

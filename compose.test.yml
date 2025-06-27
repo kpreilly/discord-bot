@@ -1,0 +1,145 @@
+# Testing/Staging environment overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.test.yml up
+
+services:
+  discord-bot:
+    # Testing environment variables
+    environment:
+      - ENVIRONMENT=testing
+      - LOG_LEVEL=DEBUG
+      - DATABASE_ECHO=true
+    
+    # Testing-specific resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1.5G
+        reservations:
+          cpus: '0.75'
+          memory: 768M
+    
+    # Testing secrets
+    secrets:
+      - source: discord_token_test
+        target: /run/secrets/discord_token
+      - source: database_url_test
+        target: /run/secrets/database_url
+    
+    # Add test coverage and reporting volumes
+    volumes:
+      - ./tests:/app/tests:ro
+      - test-coverage:/app/coverage:rw
+      - bot-logs:/app/logs:rw
+    
+    # Testing command with coverage
+    command: ["python", "-m", "pytest", "--cov=src", "--cov-report=html:/app/coverage", "--cov-report=term-missing"]
+
+  database:
+    # Testing database configuration
+    environment:
+      - POSTGRES_DB=discord_bot_test
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+    
+    # Expose database port for testing tools
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    
+    # Testing secrets
+    secrets:
+      - source: db_password_test
+        target: /run/secrets/db_password
+
+  # Test database for parallel testing
+  test-database:
+    image: postgres:16-alpine
+    container_name: postgres-test-parallel
+    restart: "no"  # Don't restart test containers
+    
+    networks:
+      - database-network
+    
+    environment:
+      - POSTGRES_DB=discord_bot_test_parallel
+      - POSTGRES_USER=test_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    
+    secrets:
+      - source: db_password_test
+        target: /run/secrets/db_password
+    
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+        tmpfs:
+          size: 500M
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d discord_bot_test_parallel"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Test runner service for CI/CD integration
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    
+    image: discord-bot:test
+    container_name: discord-bot-test-runner
+    restart: "no"
+    
+    networks:
+      - database-network
+    
+    environment:
+      - ENVIRONMENT=testing
+      - LOG_LEVEL=DEBUG
+      - DATABASE_ECHO=true
+      - PYTEST_CURRENT_TEST=true
+    
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./src:/app/src:ro
+      - test-coverage:/app/coverage:rw
+      - test-reports:/app/reports:rw
+    
+    # Override for test execution
+    command: |
+      sh -c "
+        python -m pytest tests/ \
+          --cov=src \
+          --cov-report=html:/app/coverage \
+          --cov-report=xml:/app/reports/coverage.xml \
+          --cov-report=term-missing \
+          --junit-xml=/app/reports/pytest.xml \
+          --verbose \
+          --tb=short
+      "
+    
+    depends_on:
+      test-database:
+        condition: service_healthy
+
+# Testing secrets (file-based for CI/CD)
+secrets:
+  discord_token_test:
+    file: ./secrets/test/discord_token.txt
+  
+  database_url_test:
+    file: ./secrets/test/database_url.txt
+  
+  db_password_test:
+    file: ./secrets/test/db_password.txt
+
+# Testing volumes
+volumes:
+  test-coverage:
+    driver: local
+  test-reports:
+    driver: local

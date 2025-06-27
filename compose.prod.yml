@@ -1,0 +1,191 @@
+# Production environment overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  discord-bot:
+    # Production image with specific tag
+    image: discord-bot:${BOT_VERSION}
+    
+    # Production environment variables
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - DATABASE_ECHO=false
+    
+    # Production resource limits (stricter)
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    
+    # Production secrets (external management)
+    secrets:
+      - source: discord_token_prod
+        target: /run/secrets/discord_token
+      - source: database_url_prod
+        target: /run/secrets/database_url
+      - source: sentry_dsn_prod
+        target: /run/secrets/sentry_dsn
+    
+    # Production logging with structured format
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        labels: "service=discord-bot,environment=production"
+    
+    # Production health check (more frequent)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  database:
+    # Production database configuration
+    image: postgres:16-alpine
+    
+    environment:
+      - POSTGRES_DB=discord_bot_prod
+      - POSTGRES_USER=bot_user_prod
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    
+    # Production secrets
+    secrets:
+      - source: db_password_prod
+        target: /run/secrets/db_password
+    
+    # Production logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+        labels: "service=postgres,environment=production"
+    
+    # Production health check
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot_user_prod -d discord_bot_prod"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # Production monitoring and observability
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus-prod
+    restart: unless-stopped
+    
+    networks:
+      - bot-network
+    
+    ports:
+      - "9090:9090"
+    
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus:rw
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-prod
+    restart: unless-stopped
+    
+    networks:
+      - bot-network
+    
+    ports:
+      - "3000:3000"
+    
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD_FILE=/run/secrets/grafana_admin_password
+    
+    secrets:
+      - grafana_admin_password
+    
+    volumes:
+      - grafana-data:/var/lib/grafana:rw
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+# Production secrets (external management)
+secrets:
+  discord_token_prod:
+    external: true
+    name: discord_token_prod
+  
+  database_url_prod:
+    external: true
+    name: database_url_prod
+  
+  db_password_prod:
+    external: true
+    name: db_password_prod
+  
+  sentry_dsn_prod:
+    external: true
+    name: sentry_dsn_prod
+  
+  grafana_admin_password:
+    external: true
+    name: grafana_admin_password_prod
+
+# Production volumes
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local

@@ -1,0 +1,76 @@
+# Development environment overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  discord-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    
+    # Development-specific environment variables
+    environment:
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - DATABASE_ECHO=true
+    
+    # Development volume mounts for hot reloading
+    volumes:
+      - ./src:/app/src:ro
+      - ./bot.py:/app/bot.py:ro
+      - ./tests:/app/tests:ro
+      - bot-logs:/app/logs:rw
+    
+    # Disable read-only for development
+    read_only: false
+    
+    # Expose ports for debugging
+    ports:
+      - "8080:8080"  # Debug port
+    
+    # Override command for development with auto-reload
+    command: ["python", "-u", "bot.py"]
+    
+    # Development secrets (file-based for local development)
+    secrets:
+      - source: discord_token_dev
+        target: /run/secrets/discord_token
+      - source: database_url_dev
+        target: /run/secrets/database_url
+
+  database:
+    # Development environment variables
+    environment:
+      - POSTGRES_DB=discord_bot_dev
+      - POSTGRES_USER=dev_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+    
+    # Expose database port for development tools
+    ports:
+      - "5432:5432"
+    
+    # Disable read-only for development
+    read_only: false
+    
+    # Development secrets
+    secrets:
+      - source: db_password_dev
+        target: /run/secrets/db_password
+
+# Development-specific secrets (file-based)
+secrets:
+  discord_token_dev:
+    file: ./secrets/dev/discord_token.txt
+  
+  database_url_dev:
+    file: ./secrets/dev/database_url.txt
+  
+  db_password_dev:
+    file: ./secrets/dev/db_password.txt
+
+# Development volumes
+volumes:
+  bot-logs:
+    driver: local
+  database-data:
+    driver: local
