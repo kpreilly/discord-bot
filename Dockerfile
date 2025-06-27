@@ -1,41 +1,63 @@
-# Multi-stage Docker build following 2025 security best practices
+# Multi-stage Docker build following 2025 UV best practices
+FROM python:3.12-slim AS base
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
 # Build stage
-FROM python:3.12-slim AS builder
+FROM base AS builder
+
+# Install UV using official image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Configure UV for optimal container performance
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
 
 WORKDIR /app
 
-# Install uv for fast dependency management
-RUN pip install uv
+# Copy dependency files first for optimal caching
+COPY uv.lock pyproject.toml ./
 
-# Copy dependency files
-COPY pyproject.toml uv.lock* ./
+# Install dependencies without project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
+# Copy project files and complete installation
+COPY . ./
 
-# Production stage
-FROM python:3.12-slim AS production
+# Complete project installation
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
-# Create non-root user for security
-RUN groupadd -r botuser && useradd -r -g botuser botuser
+# Production stage using distroless for maximum security
+FROM gcr.io/distroless/python3-debian12:nonroot AS production
 
+# Set working directory
 WORKDIR /app
 
-# Copy virtual environment from builder
-COPY --from=builder /app/.venv /app/.venv
+# Copy complete application from builder
+COPY --from=builder --chown=65532:65532 /app /app
 
-# Add venv to path
-ENV PATH="/app/.venv/bin:$PATH"
+# Set environment variables
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=random
 
-# Copy application code
-COPY --chown=botuser:botuser . .
+# Use non-root user (65532:65532 is nonroot user in distroless)
+USER 65532:65532
 
-# Switch to non-root user
-USER botuser
-
-# Health check
+# Health check using Python instead of curl for distroless compatibility
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import asyncio; print('healthy')" || exit 1
+    CMD ["python", "-c", "import sys; sys.exit(0)"]
 
-# Set resource limits and run bot
+# Signal handling for graceful shutdown
+STOPSIGNAL SIGTERM
+
+# Default command
 CMD ["python", "bot.py"]
