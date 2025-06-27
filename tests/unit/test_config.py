@@ -155,6 +155,7 @@ def test_optional_fields_defaults(clean_env, test_data_factory):
         discord_token=test_data_factory.discord_token(),
         discord_registration_channel_name="registrations",
         discord_test_channel_name="testing",
+        _env_file=None,  # Prevent loading from .env file
     )
 
     assert settings.discord_guild_id is None
@@ -162,11 +163,11 @@ def test_optional_fields_defaults(clean_env, test_data_factory):
     assert settings.command_prefix == "!"
     assert settings.database_url == "sqlite+aiosqlite:///bot.db"
     assert settings.database_echo is False
-    assert settings.google_credentials_path == "credentials.json"
-    assert settings.google_spreadsheet_id == "your_spreadsheet_id_here"
+    assert settings.google_credentials_path == ""
+    assert settings.google_spreadsheet_id == ""
     assert settings.environment == "development"
     assert settings.log_level == "INFO"
-    assert settings.sentry_dsn == "your_sentry_dsn_here"
+    assert settings.sentry_dsn == ""
 
 
 def test_settings_isolation(clean_env, test_data_factory):

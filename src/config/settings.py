@@ -1,11 +1,13 @@
-from pydantic import ConfigDict, Field, field_validator
-from pydantic_settings import BaseSettings
+from typing import Any
+
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings using Pydantic Settings for 2025 best practices."""
 
-    model_config = ConfigDict(
+    model_config = SettingsConfigDict(
         env_file=".env",
         env_ignore_empty=True,
         case_sensitive=False,
@@ -75,7 +77,7 @@ class Settings(BaseSettings):
 
 
 # Settings factory function
-def get_settings(**kwargs) -> Settings:
+def get_settings(**kwargs: Any) -> Settings:
     """Get a settings instance with optional overrides."""
     return Settings(**kwargs)
 
