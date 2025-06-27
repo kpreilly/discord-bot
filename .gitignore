@@ -121,15 +121,18 @@ celerybeat.pid
 
 # Environments
 .env
-.env.dev
-.env.test
-.env.prod
+.env.local
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Allow project environment files (no secrets)
+!.env.dev
+!.env.test
+!.env.prod
 
 # Spyder project settings
 .spyderproject
@@ -170,6 +173,9 @@ bot_token.txt
 *.sqlite
 *.sqlite3
 
+# Secrets directory (contains sensitive data)
+secrets/
+
 # Docker
 docker-compose.override.yml
 
@@ -187,3 +193,5 @@ Thumbs.db
 uv.lock
 
 overview.md
+.claude/
+CLAUDE.md
