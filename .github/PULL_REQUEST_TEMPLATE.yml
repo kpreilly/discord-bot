@@ -1,0 +1,144 @@
+name: Pull Request
+description: Submit a pull request for review
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing to the Discord bot! 🚀
+        
+        Please fill out this template to help us review your changes effectively.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Provide a brief description of the changes in this PR
+      placeholder: What does this PR do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: changes-made
+    attributes:
+      label: Changes Made
+      description: List the specific changes made in this pull request
+      placeholder: |
+        - Added feature X
+        - Fixed bug Y
+        - Updated documentation Z
+    validations:
+      required: true
+
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: Related Issues
+      description: Link any related issues this PR addresses
+      placeholder: |
+        Fixes #123
+        Relates to #456
+
+  - type: dropdown
+    id: change-type
+    attributes:
+      label: Type of Change
+      description: What type of change is this?
+      options:
+        - Bug fix (non-breaking change which fixes an issue)
+        - New feature (non-breaking change which adds functionality)
+        - Breaking change (fix or feature that would cause existing functionality to not work as expected)
+        - Documentation update
+        - Code refactoring
+        - Performance improvement
+        - Test improvements
+      multiple: true
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: bot-changes
+    attributes:
+      label: Bot Command Changes
+      description: If this PR affects bot commands, check what applies
+      options:
+        - label: New commands added
+        - label: Existing commands modified
+        - label: Commands removed
+        - label: Command permissions changed
+
+  - type: checkboxes
+    id: command-testing
+    attributes:
+      label: Command Testing
+      description: For bot-related changes, confirm testing completed
+      options:
+        - label: Tested in development server
+        - label: Verified permissions work correctly
+        - label: Confirmed error handling works
+        - label: Checked command help text
+        - label: Validated slash command registration
+
+  - type: checkboxes
+    id: database-changes
+    attributes:
+      label: Database Changes
+      description: If this affects the database, check what applies
+      options:
+        - label: Migration scripts included
+        - label: Database schema updated
+        - label: Backward compatibility maintained
+        - label: Test data migration verified
+
+  - type: checkboxes
+    id: config-changes
+    attributes:
+      label: Configuration Changes
+      description: If this affects bot configuration, check what applies
+      options:
+        - label: Environment variables documented
+        - label: Configuration examples updated
+        - label: Setup instructions modified
+        - label: Default values appropriate
+
+  - type: textarea
+    id: testing-instructions
+    attributes:
+      label: Testing Instructions
+      description: Describe how to test these changes
+      placeholder: |
+        1. Step one
+        2. Step two
+        3. Step three
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots/Recordings
+      description: If applicable, add screenshots or recordings to help explain your changes
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Confirm you have completed these steps
+      options:
+        - label: My code follows the project's style guidelines
+          required: true
+        - label: I have performed a self-review of my own code
+          required: true
+        - label: I have commented my code, particularly in hard-to-understand areas
+        - label: I have made corresponding changes to the documentation
+        - label: My changes generate no new warnings
+          required: true
+        - label: I have added tests that prove my fix is effective or that my feature works
+        - label: New and existing unit tests pass locally with my changes
+          required: true
+        - label: Any dependent changes have been merged and published
+
+  - type: textarea
+    id: additional-notes
+    attributes:
+      label: Additional Notes
+      description: Any additional information that would be helpful for reviewers

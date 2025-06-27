@@ -1,0 +1,85 @@
+name: Development Task
+description: Create a development task for the team
+title: "[TASK] "
+labels: ["type:task", "status:needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Create a development task for team planning and tracking 📋
+  
+  - type: textarea
+    id: task-description
+    attributes:
+      label: Task Description
+      description: Clear description of what needs to be done
+      placeholder: Describe the task that needs to be completed
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of the system does this task affect?
+      options:
+        - Bot Core
+        - Tracker Commands
+        - Admin Commands
+        - Database
+        - Configuration
+        - Testing
+        - Documentation
+        - CI/CD
+        - Infrastructure
+    validations:
+      required: true
+  
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort Estimation
+      description: How much effort do you estimate this will take?
+      options:
+        - Small (1-4 hours)
+        - Medium (1-2 days)
+        - Large (3-5 days)
+        - Epic (1+ weeks)
+    validations:
+      required: true
+  
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: What conditions must be met for this task to be considered complete?
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+        - [ ] Criterion 3
+    validations:
+      required: true
+  
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Notes
+      description: Any technical considerations, dependencies, or implementation details
+  
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: Related Issues
+      description: Link any related issues or dependencies
+      placeholder: "Depends on #123, Related to #456"
+  
+  - type: checkboxes
+    id: definition-of-done
+    attributes:
+      label: Definition of Done
+      options:
+        - label: Code follows project standards (ruff, mypy)
+        - label: Unit tests written and passing
+        - label: Documentation updated if needed
+        - label: Manual testing completed
+        - label: No breaking changes or migration path provided

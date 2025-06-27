@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discord Community Support
+    url: https://discord.gg/your-server
+    about: Join our Discord server for community support and discussions
+  - name: Documentation
+    url: https://github.com/kpreilly/discord-bot/wiki
+    about: Check our documentation for setup guides and FAQs
