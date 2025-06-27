@@ -11,7 +11,7 @@ def test_settings_factory(clean_env):
     settings = get_settings(
         discord_token="TEST_TOKEN_" + "x" * 60,
         discord_registration_channel_name="registrations",
-        discord_test_channel_name="testing"
+        discord_test_channel_name="testing",
     )
     assert isinstance(settings, Settings)
     assert settings.discord_token == "TEST_TOKEN_" + "x" * 60
@@ -35,7 +35,7 @@ def test_discord_token_validation_valid_token(clean_env, test_data_factory):
     settings = get_settings(
         discord_token=valid_token,
         discord_registration_channel_name="registrations",
-        discord_test_channel_name="testing"
+        discord_test_channel_name="testing",
     )
     assert settings.discord_token == valid_token
 
@@ -46,7 +46,7 @@ def test_discord_token_validation_bot_prefix(clean_env, test_data_factory):
     settings = get_settings(
         discord_token=bot_token,
         discord_registration_channel_name="registrations",
-        discord_test_channel_name="testing"
+        discord_test_channel_name="testing",
     )
     assert settings.discord_token == bot_token
 
@@ -54,14 +54,14 @@ def test_discord_token_validation_bot_prefix(clean_env, test_data_factory):
 def test_discord_token_validation_invalid_token(clean_env, test_data_factory):
     """Test that invalid Discord tokens fail validation."""
     invalid_token = test_data_factory.discord_token(valid=False)
-    
+
     with pytest.raises(ValidationError) as exc_info:
         get_settings(
             discord_token=invalid_token,
             discord_registration_channel_name="registrations",
-            discord_test_channel_name="testing"
+            discord_test_channel_name="testing",
         )
-    
+
     assert "Invalid Discord token format" in str(exc_info.value)
 
 
@@ -71,9 +71,9 @@ def test_discord_token_validation_empty_token(clean_env):
         get_settings(
             discord_token="",
             discord_registration_channel_name="registrations",
-            discord_test_channel_name="testing"
+            discord_test_channel_name="testing",
         )
-    
+
     assert "Discord token is required" in str(exc_info.value)
 
 
@@ -84,7 +84,7 @@ def test_log_level_validation_valid(clean_env, test_data_factory):
             discord_token=test_data_factory.discord_token(),
             discord_registration_channel_name="registrations",
             discord_test_channel_name="testing",
-            log_level=level
+            log_level=level,
         )
         assert settings.log_level == level
 
@@ -95,7 +95,7 @@ def test_log_level_validation_case_insensitive(clean_env, test_data_factory):
         discord_token=test_data_factory.discord_token(),
         discord_registration_channel_name="registrations",
         discord_test_channel_name="testing",
-        log_level="debug"
+        log_level="debug",
     )
     assert settings.log_level == "DEBUG"
 
@@ -107,9 +107,9 @@ def test_log_level_validation_invalid(clean_env, test_data_factory):
             discord_token=test_data_factory.discord_token(),
             discord_registration_channel_name="registrations",
             discord_test_channel_name="testing",
-            log_level="INVALID"
+            log_level="INVALID",
         )
-    
+
     assert "Log level must be one of" in str(exc_info.value)
 
 
@@ -120,7 +120,7 @@ def test_environment_validation_valid(clean_env, test_data_factory):
             discord_token=test_data_factory.discord_token(),
             discord_registration_channel_name="registrations",
             discord_test_channel_name="testing",
-            environment=env
+            environment=env,
         )
         assert settings.environment == env
 
@@ -131,7 +131,7 @@ def test_environment_validation_case_insensitive(clean_env, test_data_factory):
         discord_token=test_data_factory.discord_token(),
         discord_registration_channel_name="registrations",
         discord_test_channel_name="testing",
-        environment="PRODUCTION"
+        environment="PRODUCTION",
     )
     assert settings.environment == "production"
 
@@ -143,9 +143,9 @@ def test_environment_validation_invalid(clean_env, test_data_factory):
             discord_token=test_data_factory.discord_token(),
             discord_registration_channel_name="registrations",
             discord_test_channel_name="testing",
-            environment="invalid"
+            environment="invalid",
         )
-    
+
     assert "Environment must be one of" in str(exc_info.value)
 
 
@@ -154,19 +154,19 @@ def test_optional_fields_defaults(clean_env, test_data_factory):
     settings = get_settings(
         discord_token=test_data_factory.discord_token(),
         discord_registration_channel_name="registrations",
-        discord_test_channel_name="testing"
+        discord_test_channel_name="testing",
     )
-    
+
     assert settings.discord_guild_id is None
     assert settings.discord_admin_role_id is None
     assert settings.command_prefix == "!"
     assert settings.database_url == "sqlite+aiosqlite:///bot.db"
     assert settings.database_echo is False
-    assert settings.google_credentials_path == ""
-    assert settings.google_spreadsheet_id == ""
+    assert settings.google_credentials_path == "credentials.json"
+    assert settings.google_spreadsheet_id == "your_spreadsheet_id_here"
     assert settings.environment == "development"
     assert settings.log_level == "INFO"
-    assert settings.sentry_dsn == ""
+    assert settings.sentry_dsn == "your_sentry_dsn_here"
 
 
 def test_settings_isolation(clean_env, test_data_factory):
@@ -175,16 +175,16 @@ def test_settings_isolation(clean_env, test_data_factory):
         discord_token=test_data_factory.discord_token(),
         discord_registration_channel_name="registrations",
         discord_test_channel_name="testing",
-        command_prefix="?"
+        command_prefix="?",
     )
-    
+
     settings2 = get_settings(
         discord_token=test_data_factory.discord_token(),
         discord_registration_channel_name="registrations",
         discord_test_channel_name="testing",
-        command_prefix="!"
+        command_prefix="!",
     )
-    
+
     assert settings1.command_prefix == "?"
     assert settings2.command_prefix == "!"
     assert settings1 is not settings2
